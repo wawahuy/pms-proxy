@@ -1,7 +1,9 @@
-import {a} from "../src";
+import {PmsServerProxy} from "../src/server";
 
 describe('test', () => {
-    it('test', () => {
-        expect(a(1,2)).toEqual(3);
+    const server = new PmsServerProxy();
+
+    it('test', async () => {
+        await expect(server.listen(1234)).resolves.toEqual(false);
     })
 })
