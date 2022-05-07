@@ -58,7 +58,6 @@ export class ComboServer extends net.Server {
     }
 
     private connectionListener(socket: net.Socket) {
-        console.log('connection...');
         socket.once('readable', () => {
             this.handleSocket(socket);
         })
@@ -66,21 +65,24 @@ export class ComboServer extends net.Server {
 
     private handleSocket(socket: net.Socket) {
         const data = socket.read(1);
+        if (!data) {
+            console.error('combo-server cant read data');
+            socket.destroy();
+            return;
+        }
+
         const firstByte = data[0];
         socket.unshift(data);
 
         if (firstByte === this.TLS_HANDSHAKE_BYTE) {
-            console.log('tls...')
             // TLS sockets don't allow half open
             socket.allowHalfOpen = false;
             this.tlsServer.emit('connection', socket);
         } else if (firstByte === this.HTTP2_PREFACE_BUFFER[0]) {
-            console.log('http2...')
             // The connection _might_ be HTTP/2. To confirm, we need to keep
             // reading until we get the whole stream:
             this.http2Listener(socket);
         } else {
-            console.log('http...');
             // The above unshift isn't always sufficient to invisibly replace the
             // read data. The rawPacket property on errors in the clientError event
             // for plain HTTP servers loses this data - this prop makes it available.

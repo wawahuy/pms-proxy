@@ -6,23 +6,37 @@ import {PmsCa, PmsCAOptions} from "./ca";
 import * as https from "https";
 import * as tls from "tls";
 import net from "net";
-import streams from "stream";
-import nodeFetch from "node-fetch";
+import nodeFetch, {RequestInit} from "node-fetch";
+import express from "express";
+import {PmsProxyRule} from "./rule";
+import * as Buffer from "buffer";
+import {PmsServerPassThroughHandler} from "./handler";
 
-type SocketIsh<MinProps extends keyof net.Socket> = streams.Duplex & Partial<Pick<net.Socket, MinProps>>;
+
+// import streams from "stream";
+// type SocketIsh<MinProps extends keyof net.Socket> = streams.Duplex & Partial<Pick<net.Socket, MinProps>>;
 
 export interface PmsServerProxyOptions {
     https?: PmsCAOptions | undefined,
-    http2?: true | false | 'fallback'
+    // version current not support http2
+    // http2?: true | false | 'fallback'
 }
 
+export type PmsServerRequest = express.Request;
+
+export type PmsServerResponse = express.Response;
+
 export class PmsServerProxy {
-    server: ComboServer;
+    private server: ComboServer;
+    private app: express.Express;
+
+    private readonly rules: PmsProxyRule[];
 
     constructor(
         private options?: PmsServerProxyOptions
     ) {
         this.init();
+        this.rules = [];
     }
 
     listen(port: number, host: string = '0.0.0.0') {
@@ -35,6 +49,18 @@ export class PmsServerProxy {
         })
     }
 
+    stop() {
+        this.server.close();
+    }
+
+    addRule(rule?: PmsProxyRule) {
+        if (!rule) {
+            rule = new PmsProxyRule()
+        }
+        this.rules.push(rule);
+        return rule;
+    }
+
     private init() {
         let options: https.ServerOptions;
         if (this.options.https) {
@@ -44,14 +70,15 @@ export class PmsServerProxy {
                 cert: certLocal.cert,
                 key: certLocal.key,
                 ca: [certLocal.ca],
-                ALPNProtocols: this.options.http2 === true
-                    ? ['h2', 'http/1.1']
-                    : this.options.http2 === 'fallback'
-                        ? ['http/1.1', 'h2']
-                        // false
-                        : ['http/1.1'],
+                // version current not support http2
+                // ALPNProtocols: this.options.http2 === true
+                //     ? ['h2', 'http/1.1']
+                //     : this.options.http2 === 'fallback'
+                //         ? ['http/1.1', 'h2']
+                //         // false
+                //         : ['http/1.1'],
+                ALPNProtocols: ['http/1.1'],
                 SNICallback: (domain: string, cb: Function) => {
-                    console.log(domain)
                     try {
                         const generatedCert = ca.generateCertificate(domain);
                         cb(null, tls.createSecureContext({
@@ -67,26 +94,108 @@ export class PmsServerProxy {
             }
         }
 
-        this.server = new ComboServer(this.handleRequest.bind(this), options);
+        this.server = new ComboServer(this.handleNativeRequest.bind(this), options);
+        this.server.on('connection', this.handleConnection.bind(this));
+        this.server.on('secureConnection', this.handleSecureConnection.bind(this));
+        this.server.on('upgrade', this.handleWebsocket.bind(this));
         this.server.addListener('connect', this.handleConnect.bind(this));
+
+        this.app = express();
+        this.app.use(express.json());
+        this.app.use(this.handleExpressRequest.bind(this));
     }
 
-    private handleRequest(req: IncomingMessage | http2.Http2ServerRequest, res: ServerResponse | http2.Http2ServerResponse) {
-        const host = 'https://' + req.headers['host'] + req.url;
-        nodeFetch(host, { headers: <any>req.headers })
-            .then(r => r.body)
-            .then(r => r.pipe(res));
+    private handleNativeRequest(req: IncomingMessage | http2.Http2ServerRequest, res: ServerResponse | http2.Http2ServerResponse) {
+        this.app(req as IncomingMessage, res as ServerResponse);
+    }
+
+    private async handleExpressRequest(req: express.Request, res: express.Response) {
+        let url = req.url;
+        if (!url.match(/^http(s?):\/\//g)) {
+            url = `${req.protocol}://${req.hostname}${req.url}`;
+        }
+
+        // Rewrite url
+        req.url = url;
+
+        // Check rules
+        for (let rule of this.rules) {
+            if (await rule.test(req)) {
+                return await rule.handle(req, res);
+            }
+        }
+
+        // Forward traffic
+        const pass = new PmsServerPassThroughHandler(null,false);
+        await pass.handle(req, res);
+    }
+
+    private handleConnection(socket: net.Socket) {
+    }
+
+    private handleSecureConnection(socket: tls.TLSSocket) {
     }
 
     private handleConnect(
         req: http.IncomingMessage | http2.Http2ServerRequest,
-        resOrSocket: net.Socket | http2.Http2ServerResponse
+        resOrSocket: net.Socket | http2.Http2ServerResponse,
+        upgradeHead: Buffer
     ) {
         if (resOrSocket instanceof net.Socket) {
-            this.handleH1Connect(req as http.IncomingMessage, resOrSocket);
+            if (this.options.https) {
+                // upgrade tls request
+                this.handleH1Connect(req as http.IncomingMessage, resOrSocket);
+            } else {
+                // when no CA certificate
+                // pass tcp tls data
+                this.handlePassThroughTLS(req as http.IncomingMessage, resOrSocket, upgradeHead);
+            }
         } else {
-            this.handleH2Connect(req as http2.Http2ServerRequest, resOrSocket);
+            // this.handleH2Connect(req as http2.Http2ServerRequest, resOrSocket);
+            console.error('Can\'t support HTTP2');
         }
+    }
+
+    private handlePassThroughTLS(
+        req: http.IncomingMessage,
+        socket: net.Socket,
+        upgradeHead: Buffer
+    ) {
+        const uSplit = req.url.split(':');
+        const port = Number(uSplit?.[1]) || 443;
+        const domain = uSplit[0];
+
+        const proxySocket = new net.Socket();
+        proxySocket.connect(port, domain, () => {
+                proxySocket.write(upgradeHead);
+                socket.write("HTTP/" + req.httpVersion + " 200 Connection established\r\n\r\n");
+            }
+        );
+
+        proxySocket.on('data', (chunk) => {
+            socket.write(chunk);
+        });
+
+        proxySocket.on('end', () => {
+            socket.end();
+        });
+
+        proxySocket.on('error', () => {
+            socket.write("HTTP/" + req.httpVersion + " 500 Connection error\r\n\r\n");
+            socket.end();
+        });
+
+        socket.on('data', (chunk) => {
+            proxySocket.write(chunk);
+        });
+
+        socket.on('end', () => {
+            proxySocket.end();
+        });
+
+        socket.on('error', () => {
+            proxySocket.end();
+        });
     }
 
     private handleH1Connect(req: http.IncomingMessage, socket: net.Socket) {
@@ -102,50 +211,59 @@ export class PmsServerProxy {
         }
 
         socket.write('HTTP/' + req.httpVersion + ' 200 OK\r\n\r\n', 'utf-8', () => {
-            // socket.__timingInfo!.tunnelSetupTimestamp = now();
             this.server.emit('connection', socket);
         });
     }
 
-    private handleH2Connect(req: http2.Http2ServerRequest, res: http2.Http2ServerResponse) {
-        const connectUrl = req.headers[':authority'];
-
-        if (!connectUrl) {
-             // If we can't work out where to go, send an error.
-             res.writeHead(400, {});
-             res.end();
-             return;
-        }
-        // Send a 200 OK response, and start the tunnel:
-        res.writeHead(200, {});
-        this.copyAddressDetails(res.socket, res.stream);
-        // copyTimingDetails(res.socket, res.stream);
-
-        // When layering HTTP/2 on JS streams, we have to make sure the JS stream won't autoclose
-        // when the other side does, because the upper HTTP/2 layers want to handle shutdown, so
-        // they end up trying to write a GOAWAY at the same time as the lower stream shuts down,
-        // and we get assertion errors in Node v16.7+.
-        if (res.socket.constructor.name.includes('JSStreamSocket')) {
-            res.socket.allowHalfOpen = true;
-        }
-
-        this.server.emit('connection', res.stream);
-    }
-
-    private copyAddressDetails(
-        source: SocketIsh<'localAddress' | 'localPort' | 'remoteAddress' | 'remotePort'>,
-        target: SocketIsh<'localAddress' | 'localPort' | 'remoteAddress' | 'remotePort'>
+    private handleWebsocket(
+        rawRequest: http.IncomingMessage,socket: net.Socket, head: Buffer
     ) {
-        const fields = ['localAddress', 'localPort', 'remoteAddress', 'remotePort'] as const;
-        Object.defineProperties(target, fields.reduce((data, item) => {
-            data[item] = { writable: true };
-            return data;
-        }, {}));
-        fields.forEach((fieldName) => {
-            if (target[fieldName] === undefined) {
-                (target as any)[fieldName] = source[fieldName];
-            }
-        });
+        /**
+         * version current not support websocket
+         *
+         */
+        console.error('version current not support websocket')
+        socket.destroy();
     }
+
+    // private handleH2Connect(req: http2.Http2ServerRequest, res: http2.Http2ServerResponse) {
+    //     const connectUrl = req.headers[':authority'];
+    //
+    //     if (!connectUrl) {
+    //          // If we can't work out where to go, send an error.
+    //          res.writeHead(400, {});
+    //          res.end();
+    //          return;
+    //     }
+    //     // Send a 200 OK response, and start the tunnel:
+    //     res.writeHead(200, {});
+    //     this.copyAddressDetails(res.socket, res.stream);
+    //
+    //     // When layering HTTP/2 on JS streams, we have to make sure the JS stream won't autoclose
+    //     // when the other side does, because the upper HTTP/2 layers want to handle shutdown, so
+    //     // they end up trying to write a GOAWAY at the same time as the lower stream shuts down,
+    //     // and we get assertion errors in Node v16.7+.
+    //     if (res.socket.constructor.name.includes('JSStreamSocket')) {
+    //         res.socket.allowHalfOpen = true;
+    //     }
+    //
+    //     this.server.emit('connection', res.stream);
+    // }
+
+    // private copyAddressDetails(
+    //     source: SocketIsh<'localAddress' | 'localPort' | 'remoteAddress' | 'remotePort'>,
+    //     target: SocketIsh<'localAddress' | 'localPort' | 'remoteAddress' | 'remotePort'>
+    // ) {
+    //     const fields = ['localAddress', 'localPort', 'remoteAddress', 'remotePort'] as const;
+    //     Object.defineProperties(target, fields.reduce((data, item) => {
+    //         data[item] = { writable: true };
+    //         return data;
+    //     }, {}));
+    //     fields.forEach((fieldName) => {
+    //         if (target[fieldName] === undefined) {
+    //             (target as any)[fieldName] = source[fieldName];
+    //         }
+    //     });
+    // }
 
 }

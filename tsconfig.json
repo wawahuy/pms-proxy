@@ -7,10 +7,12 @@
         "sourceMap": false,
         "declaration": true,
         "outDir": "./dist",
-        "rootDir": "."
+        "rootDir": "./src",
+        "typeRoots": ["./node_modules/@types", "./types"]
     },
     "lib": ["es2015"],
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "types/**/*"
     ]
 }
