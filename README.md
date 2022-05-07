@@ -1,11 +1,21 @@
 # PMS Proxy
+[![Available on NPM](https://img.shields.io/npm/v/pms-proxy.svg)](https://npmjs.com/package/pms-proxy)  [![Try Mockttp on RunKit](https://badge.runkitcdn.com/pms-proxy.svg)](https://npm.runkit.com/pms-proxy)
+<br>
 Supports http/https traffic monitoring.
+
+## Get Started
+```bash
+npm install pms-proxy
+```
+
 
 ## Todo
 - Support websocket forward and monitoring
 - Write more rules and handlers
 - Function create CA cert and generate SPKIFingerprint
--
+- Write unit test
+- Setup CI
+- 
 
 ## Progress
 - Support http2
