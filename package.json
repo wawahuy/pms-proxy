@@ -13,6 +13,10 @@
   "engines": {
     "node": ">=12.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wawahuy/pms-proxy.git"
+  },
   "author": "wawahuy (nguyengiahuy16@gmail.com)",
   "license": "ISC",
   "devDependencies": {
