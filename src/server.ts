@@ -62,7 +62,7 @@ export class PmsServerProxy {
 
     private init() {
         let options: https.ServerOptions;
-        if (this.options.https) {
+        if (this.options && this.options.https) {
             const ca = new PmsCa(this.options.https);
             const certLocal = ca.generateCertificate('localhost');
             options = {
@@ -142,7 +142,7 @@ export class PmsServerProxy {
         upgradeHead: Buffer
     ) {
         if (resOrSocket instanceof net.Socket) {
-            if (this.options.https) {
+            if (this.options && this.options.https) {
                 // upgrade tls request
                 this.handleH1Connect(req as http.IncomingMessage, resOrSocket);
             } else {
