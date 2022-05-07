@@ -78,10 +78,10 @@ export class PmsProxyRule {
         } else if(typeof b === 'function') {
             return b(a);
         } else if (b instanceof RegExp) {
-            return a.match(b);
+            return a && a.match(b);
         } else if (b instanceof Array) {
             return b.every(item => this.compare(a, item));
         }
-        return true;
+        return false;
     }
 }
