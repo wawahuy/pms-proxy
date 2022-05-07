@@ -1,7 +1,8 @@
 import {PmsServerRequest, PmsServerResponse} from "./server";
 import {PmsServerCallbackHandler, PmsServerHandler} from "./handler";
+import {MayBePromise} from "./types";
 
-export type PmsProxyRuleMatch = (req: PmsServerRequest) => boolean | Promise<boolean>;
+export type PmsProxyRuleMatch = (req: PmsServerRequest) => MayBePromise<boolean>;
 
 export type PmsProxyRuleValue = string | string | RegExp | RegExp[] | ((value: string) => boolean);
 
@@ -13,11 +14,13 @@ export class PmsProxyRule {
     ) {
     }
 
-    async handle(req: PmsServerRequest, res: PmsServerResponse) {
+    handle(req: PmsServerRequest, res: PmsServerResponse) {
         if (this.handler instanceof PmsServerHandler) {
             return this.handler.handle(req, res);
-        } else {
+        } else if(typeof this.handler === 'function') {
             return this.handler(req, res);
+        } else {
+            console.error('No handler');
         }
     }
 
@@ -72,6 +75,8 @@ export class PmsProxyRule {
     private compare(a: string, b: PmsProxyRuleValue) {
         if (typeof b === 'string') {
             return a === b;
+        } else if(typeof b === 'function') {
+            return b(a);
         } else if (b instanceof RegExp) {
             return a.match(b);
         } else if (b instanceof Array) {

@@ -1,19 +1,28 @@
 import {PmsServerRequest, PmsServerResponse} from "./server";
 import nodeFetch, {RequestInit} from "node-fetch";
+import {MayBePromise} from "./types";
+import http from "http";
 
-export type PmsServerCallbackHandler = (request: PmsServerRequest, response: PmsServerResponse) => Promise<void> | void;
+export type PmsServerCallbackHandler = (request: PmsServerRequest, response: PmsServerResponse) => MayBePromise<void>;
 
 export abstract class PmsServerHandler {
-    abstract handle(request: PmsServerRequest, response: PmsServerResponse): Promise<void> | void;
+    abstract handle(request: PmsServerRequest, response: PmsServerResponse): MayBePromise<void>;
 }
 
 export class PmsServerPassThroughHandler extends PmsServerHandler {
+    callbackInjectBuffer: (req: PmsServerRequest, buffer: Buffer) => MayBePromise<{
+        data: Buffer | string,
+        headers?: http.IncomingHttpHeaders
+    }>;
 
     constructor(
-        private callback?: (buffer: Buffer) => Promise<Buffer> | Buffer,
         private compress: boolean = true,
     ) {
         super();
+    }
+
+    injectBuffer(callback: Required<PmsServerPassThroughHandler>['callbackInjectBuffer']) {
+        this.callbackInjectBuffer = callback;
     }
 
     async handle(req: PmsServerRequest, res: PmsServerResponse) {
@@ -31,16 +40,26 @@ export class PmsServerPassThroughHandler extends PmsServerHandler {
         if (!forwardResponse) {
             return
         }
-        const forwardResponseHeaders = forwardResponse.headers.raw();
+
+        let forwardResponseHeaders = forwardResponse.headers.raw();
         if (this.compress) {
             delete forwardResponseHeaders['content-encoding'];
         }
-        if (this.callback) {
-            const result = await forwardResponse.buffer();
-            const r = await this.callback(result);
-            forwardResponseHeaders['content-length'] = r.length;
+
+        if (this.callbackInjectBuffer) {
+            const buffer = await forwardResponse.buffer();
+            const result = await this.callbackInjectBuffer(req, buffer);
+            if (result.headers) {
+                forwardResponseHeaders = Object.assign(forwardResponseHeaders, result.headers);
+            }
+
+            let data = result.data;
+            if (!(data instanceof Buffer)) {
+                data = Buffer.from(data);
+            }
+            forwardResponseHeaders['content-length'] = data.length;
             res.writeHead(forwardResponse.status, forwardResponseHeaders);
-            res.write(r);
+            res.write(data);
             res.end()
         } else {
             res.writeHead(forwardResponse.status, forwardResponseHeaders);

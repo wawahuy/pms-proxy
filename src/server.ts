@@ -6,7 +6,6 @@ import {PmsCa, PmsCAOptions} from "./ca";
 import * as https from "https";
 import * as tls from "tls";
 import net from "net";
-import nodeFetch, {RequestInit} from "node-fetch";
 import express from "express";
 import {PmsProxyRule} from "./rule";
 import * as Buffer from "buffer";
@@ -121,12 +120,13 @@ export class PmsServerProxy {
         // Check rules
         for (let rule of this.rules) {
             if (await rule.test(req)) {
-                return await rule.handle(req, res);
+                // async
+                return rule.handle(req, res);
             }
         }
 
         // Forward traffic
-        const pass = new PmsServerPassThroughHandler(null,false);
+        const pass = new PmsServerPassThroughHandler(false);
         await pass.handle(req, res);
     }
 
