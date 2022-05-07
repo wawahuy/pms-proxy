@@ -10,7 +10,6 @@ npm install pms-proxy
 
 
 ## Todo
-- Support websocket forward and monitoring
 - Write more rules and handlers
 - Function create CA cert and generate SPKIFingerprint
 - Write unit test
@@ -18,6 +17,7 @@ npm install pms-proxy
 - 
 
 ## Progress
+- Support websocket forward and monitoring
 - Support http2
 -
 

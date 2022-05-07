@@ -80,7 +80,7 @@ export class PmsProxyRule {
         } else if (b instanceof RegExp) {
             return a && a.match(b);
         } else if (b instanceof Array) {
-            return b.every(item => this.compare(a, item));
+            return b.some(item => this.compare(a, item));
         }
         return false;
     }

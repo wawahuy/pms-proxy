@@ -10,6 +10,7 @@ import express from "express";
 import {PmsProxyRule} from "./rule";
 import * as Buffer from "buffer";
 import {PmsServerPassThroughHandler} from "./handler";
+import {PmsWebsocketProxy} from "./ws";
 
 
 // import streams from "stream";
@@ -28,6 +29,7 @@ export type PmsServerResponse = express.Response;
 export class PmsServerProxy {
     private server: ComboServer;
     private app: express.Express;
+    private ws: PmsWebsocketProxy;
 
     private readonly rules: PmsProxyRule[];
 
@@ -93,11 +95,14 @@ export class PmsServerProxy {
             }
         }
 
+
         this.server = new ComboServer(this.handleNativeRequest.bind(this), options);
         this.server.on('connection', this.handleConnection.bind(this));
         this.server.on('secureConnection', this.handleSecureConnection.bind(this));
-        this.server.on('upgrade', this.handleWebsocket.bind(this));
         this.server.addListener('connect', this.handleConnect.bind(this));
+
+        this.ws = new PmsWebsocketProxy();
+        this.server.on('upgrade', this.ws.handleUpgrade.bind(this.ws));
 
         this.app = express();
         this.app.use(express.json());
@@ -213,17 +218,6 @@ export class PmsServerProxy {
         socket.write('HTTP/' + req.httpVersion + ' 200 OK\r\n\r\n', 'utf-8', () => {
             this.server.emit('connection', socket);
         });
-    }
-
-    private handleWebsocket(
-        rawRequest: http.IncomingMessage,socket: net.Socket, head: Buffer
-    ) {
-        /**
-         * version current not support websocket
-         *
-         */
-        console.error('version current not support websocket')
-        socket.destroy();
     }
 
     // private handleH2Connect(req: http2.Http2ServerRequest, res: http2.Http2ServerResponse) {

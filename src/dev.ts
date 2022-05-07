@@ -20,23 +20,26 @@ s.listen(1234).then(r => {
     })
 
     s.addRule()
-        .host([/google\.com/g])
+        .host([/test-google\.com/g])
         .setHandler(pass);
 
-    s.addRule()
-        .match(() => true)
-        .setHandler((req, res) => {
-            res.status(200).write('Hello world!');
-        })
+    // s.addRule()
+    //     .match(() => true)
+    //     .setHandler((req, res) => {
+    //         console.log(req.url);
+    //         res.status(200).write('Hello world!');
+    //     })
 
-    request('https://google.com/test?a=1', {
-        proxy: 'http://localhost:1234',
-        ca: fs.readFileSync(path.join(__dirname, '../certs/rootCA.pem'))
-    }, (err, res) => {
-        if (!!err) {
-            console.log(err.name);
-            return;
-        }
-        console.log(res.body.length);
-    })
+    for (let i of [1,2]) {
+        request('https://google.com/test?a=' + i, {
+            proxy: 'http://localhost:1234',
+            ca: fs.readFileSync(path.join(__dirname, '../certs/rootCA.pem'))
+        }, (err, res) => {
+            if (!!err) {
+                console.log(err.name);
+                return;
+            }
+            console.log(res.body.length);
+        })
+    }
 });
