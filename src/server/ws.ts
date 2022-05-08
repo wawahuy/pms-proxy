@@ -1,9 +1,8 @@
-import WebSocket, {createWebSocketStream, WebSocketServer} from "ws";
+import WebSocket, {WebSocketServer} from "ws";
 import http from "http";
 import net from "net";
 import Buffer from "buffer";
 import * as tls from "tls";
-import {PPHttpRule} from "../rule/http-rule";
 import {ParsedQs} from "qs";
 import {PPWsRule} from "../rule/ws-rule";
 import {PPPassThroughWsHandler} from "../handler/ws-handler";
@@ -14,6 +13,9 @@ export type PPIncomingMessage = http.IncomingMessage & {
     query: ParsedQs;
     url: string;
 }
+
+export type PPWebsocket = WebSocket.WebSocket;
+export type PPWebsocketRawData = WebSocket.RawData;
 
 export class PPWebsocketProxy {
     private readonly rules: PPWsRule[];
@@ -55,7 +57,7 @@ export class PPWebsocketProxy {
         });
     }
 
-    async handleConnection(ws: WebSocket.WebSocket, request: PPIncomingMessage) {
+    async handleConnection(ws: PPWebsocket, request: PPIncomingMessage) {
         delete request.headers["accept-encoding"]
         delete request.headers.connection;
         delete request.headers.upgrade;

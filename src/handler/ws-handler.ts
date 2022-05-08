@@ -1,5 +1,5 @@
 import {MayBePromise} from "../types";
-import {PPIncomingMessage} from "../server/ws";
+import {PPIncomingMessage, PPWebsocket, PPWebsocketRawData} from "../server/ws";
 import WebSocket from "ws";
 
 export type PPCallbackWsHandler = (request: PPIncomingMessage, ws: WebSocket.WebSocket) => MayBePromise<void>;
@@ -17,11 +17,11 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         this.callbackSend = callback;
     }
 
-    injectReceive(callback: (data: WebSocket.RawData) => any) {
+    injectReceive(callback: (data: PPWebsocketRawData) => any) {
         this.callbackReceive = callback;
     }
 
-    handle(request: PPIncomingMessage, ws: WebSocket.WebSocket): MayBePromise<void> {
+    handle(request: PPIncomingMessage, ws: PPWebsocket): MayBePromise<void> {
         let queueData: any[] = [];
         let wsRemote = new WebSocket(request.url, { headers: request.headers });
 
