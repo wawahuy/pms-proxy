@@ -3,13 +3,13 @@ import nodeFetch, {RequestInit} from "node-fetch";
 import {MayBePromise} from "../types";
 import http from "http";
 
-export type PPCallbackHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
+export type PPCallbackHttpHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
 
-export abstract class PPHandler {
+export abstract class PPHttpHandler {
     abstract handle(request: PPServerRequest, response: PPServerResponse): MayBePromise<void>;
 }
 
-export class PPPassThroughHandler extends PPHandler {
+export class PPPassThroughHttpHandler extends PPHttpHandler {
     callbackInjectBuffer: (req: PPServerRequest, buffer: Buffer) => MayBePromise<{
         data: Buffer | string,
         headers?: http.IncomingHttpHeaders
@@ -21,7 +21,7 @@ export class PPPassThroughHandler extends PPHandler {
         super();
     }
 
-    injectBuffer(callback: Required<PPPassThroughHandler>['callbackInjectBuffer']) {
+    injectBuffer(callback: Required<PPPassThroughHttpHandler>['callbackInjectBuffer']) {
         this.callbackInjectBuffer = callback;
     }
 

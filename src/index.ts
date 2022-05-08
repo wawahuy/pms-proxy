@@ -1,8 +1,9 @@
 import {PPServerProxy, PPServerOptions, PPServerRequest, PPServerResponse} from "./server/server";
 import {PPComboServer} from "./server/combo-server";
-import {PPWebsocketProxy} from "./server/ws";
-import {PPCallbackHandler, PPHandler, PPPassThroughHandler} from "./handler/handler";
-import {PPRule, PPRuleMatch, PPRuleValue} from "./rule/rule";
+import {PPWebsocketProxy, PPIncomingMessage} from "./server/ws";
+import {PPCallbackHttpHandler, PPHttpHandler, PPPassThroughHttpHandler} from "./handler/http-handler";
+import {PPRule, PPRuleValue} from "./rule/rule";
+import {PPHttpRule} from "./rule/http-rule";
 import {PPCa, PPCaOptions, PPCaFileOptions, PPGeneratedCertificate, PPCaPathOptions} from "./ca";
 
 export {
@@ -10,15 +11,17 @@ export {
     PPServerRequest,
     PPServerResponse,
     PPServerOptions,
-    PPWebsocketProxy,
 
-    PPPassThroughHandler,
-    PPHandler,
-    PPCallbackHandler,
+    PPWebsocketProxy,
+    PPIncomingMessage,
+
+    PPHttpHandler,
+    PPPassThroughHttpHandler,
+    PPCallbackHttpHandler,
 
     PPRule,
-    PPRuleMatch,
     PPRuleValue,
+    PPHttpRule,
 
     PPCa,
     PPCaOptions,

@@ -4,7 +4,7 @@ import net from "net";
 import Buffer from "buffer";
 import * as tls from "tls";
 
-type CustomIncomingMessage = http.IncomingMessage & {
+export type PPIncomingMessage = http.IncomingMessage & {
     protocol: string;
     query: string;
     hostname: string;
@@ -20,7 +20,7 @@ export class PPWebsocketProxy {
         this.wss.on('connection', this.handleConnection.bind(this));
     }
 
-    handleUpgrade(request: CustomIncomingMessage, socket: net.Socket, head: Buffer) {
+    handleUpgrade(request: PPIncomingMessage, socket: net.Socket, head: Buffer) {
         request.hostname = request.headers[':authority']?.toString() || request.headers['host']?.toString();
 
         if (request.headers[':scheme']) {
@@ -40,7 +40,7 @@ export class PPWebsocketProxy {
         });
     }
 
-    handleConnection(wsA: WebSocket.WebSocket, request: CustomIncomingMessage) {
+    handleConnection(wsA: WebSocket.WebSocket, request: PPIncomingMessage) {
 
         delete request.headers["accept-encoding"]
         delete request.headers.connection;

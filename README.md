@@ -10,14 +10,11 @@ npm install pms-proxy
 
 
 ## Todo
-- Write more rules and handlers
-- Function create CA cert and generate SPKIFingerprint
 - Write unit test
 - Setup CI
 - 
 
 ## Progress
-- Support websocket forward and monitoring
 - Support http2
 -
 
@@ -35,7 +32,7 @@ server.listen(1234).then(() => {
 ### Inject page 'abc.com'
 
 ```javascript
-    const pass = new PPPassThroughHandler();
+    const pass = new PPPassThroughHttpHandler();
 pass.injectBuffer((req, buffer) => {
     return {
         data: buffer.toString() + "<script>alert('hello world!')</script>"

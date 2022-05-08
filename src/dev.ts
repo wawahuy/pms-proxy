@@ -2,7 +2,7 @@
 import request from 'request';
 import path from "path";
 import fs from "fs";
-import {PPPassThroughHandler} from "./handler/handler";
+import {PPPassThroughHttpHandler} from "./handler/http-handler";
 import {PPServerProxy} from "./server/server";
 
 const s = new PPServerProxy({
@@ -12,7 +12,7 @@ const s = new PPServerProxy({
     }
 });
 s.listen(1234).then(r => {
-    const pass = new PPPassThroughHandler();
+    const pass = new PPPassThroughHttpHandler();
     pass.injectBuffer((req, buffer) => {
         return {
             data: buffer.toString() + "<script>alert(1)</script>"
@@ -21,7 +21,7 @@ s.listen(1234).then(r => {
 
     s.addRule()
         .host([/test-google\.com/g])
-        .setHandler(pass);
+        .then(pass);
 
     // s.addRule()
     //     .match(() => true)

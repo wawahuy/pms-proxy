@@ -7,10 +7,10 @@ import * as https from "https";
 import * as tls from "tls";
 import net from "net";
 import express from "express";
-import {PPRule} from "../rule/rule";
 import * as Buffer from "buffer";
-import {PPPassThroughHandler} from "../handler/handler";
+import {PPPassThroughHttpHandler} from "../handler/http-handler";
 import {PPWebsocketProxy} from "./ws";
+import {PPHttpRule} from "../rule/http-rule";
 
 // import streams from "stream";
 // type SocketIsh<MinProps extends keyof net.Socket> = streams.Duplex & Partial<Pick<net.Socket, MinProps>>;
@@ -21,7 +21,6 @@ export interface PPServerOptions {
     // http2?: true | false | 'fallback'
 }
 
-export type PPServerRequest = express.Request;
 
 export type PPServerResponse = express.Response;
 
@@ -30,7 +29,7 @@ export class PPServerProxy {
     private app: express.Express;
     private ws: PPWebsocketProxy;
 
-    private readonly rules: PPRule[];
+    private readonly rules: PPHttpRule[];
 
     constructor(
         private options?: PPServerOptions
@@ -53,9 +52,9 @@ export class PPServerProxy {
         this.server.close();
     }
 
-    addRule(rule?: PPRule) {
+    addRule(rule?: PPHttpRule) {
         if (!rule) {
-            rule = new PPRule()
+            rule = new PPHttpRule()
         }
         this.rules.push(rule);
         return rule;
@@ -130,7 +129,7 @@ export class PPServerProxy {
         }
 
         // Forward traffic
-        const pass = new PPPassThroughHandler(false);
+        const pass = new PPPassThroughHttpHandler(false);
         await pass.handle(req, res);
     }
 

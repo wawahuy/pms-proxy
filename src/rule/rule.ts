@@ -1,32 +1,30 @@
-import {PPServerRequest, PPServerResponse} from "../server/server";
-import {PPCallbackHandler, PPHandler} from "../handler/handler";
 import {MayBePromise} from "../types";
-
-export type PPRuleMatch = (req: PPServerRequest) => MayBePromise<boolean>;
+import {ParsedQs} from "qs";
 
 export type PPRuleValue = string | string | RegExp | RegExp[] | ((value: string) => boolean);
 
-export class PPRule {
-    private listMatch: PPRuleMatch[] = [];
+interface IMatch {
+    hostname: string;
+    url: string;
+    query: ParsedQs,
+    headers: ParsedQs,
+}
+
+export class PPRule<TMatch extends IMatch, THandler> {
+    protected listMatch: ((req: TMatch) => MayBePromise<boolean>)[] = [];
 
     constructor(
-        private handler?: PPCallbackHandler | PPHandler
+        protected handler?: THandler
     ) {
     }
 
-    handle(req: PPServerRequest, res: PPServerResponse) {
-        if (this.handler instanceof PPHandler) {
-            return this.handler.handle(req, res);
-        } else if(typeof this.handler === 'function') {
-            return this.handler(req, res);
-        } else {
-            console.error('No handler');
-        }
-    }
-
-    match(callback: PPRuleMatch){
+    match(callback: (req: TMatch) => MayBePromise<boolean>){
         this.listMatch.push(callback);
         return this;
+    }
+
+    any() {
+        return () => true;
     }
 
     host(host: PPRuleValue) {
@@ -38,12 +36,6 @@ export class PPRule {
     url(url: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.url, url);
-        })
-    }
-
-    body(key: string, value: PPRuleValue) {
-        return this.match(req => {
-            return this.compare(req.body?.[key], value);
         })
     }
 
@@ -59,11 +51,11 @@ export class PPRule {
         })
     }
 
-    setHandler(handler: PPCallbackHandler | PPHandler) {
+    then(handler: THandler) {
         this.handler = handler;
     }
 
-    async test(req: PPServerRequest) {
+    async test(req: TMatch) {
         for(let match of this.listMatch) {
             if (!await match(req)) {
                 return false;
@@ -72,7 +64,7 @@ export class PPRule {
         return true;
     }
 
-    private compare(a: string, b: PPRuleValue) {
+    protected compare(a: string, b: PPRuleValue) {
         if (typeof b === 'string') {
             return a === b;
         } else if(typeof b === 'function') {
