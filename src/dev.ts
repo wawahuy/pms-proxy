@@ -2,17 +2,17 @@
 import request from 'request';
 import path from "path";
 import fs from "fs";
-import {PmsServerPassThroughHandler} from "./handler";
-import {PmsServerProxy} from "./server";
+import {PPPassThroughHandler} from "./handler/handler";
+import {PPServerProxy} from "./server/server";
 
-const s = new PmsServerProxy({
+const s = new PPServerProxy({
     https: {
         certPath: path.join(__dirname, '../certs/rootCA.pem'),
         keyPath: path.join(__dirname, '../certs/rootCA.key')
     }
 });
 s.listen(1234).then(r => {
-    const pass = new PmsServerPassThroughHandler();
+    const pass = new PPPassThroughHandler();
     pass.injectBuffer((req, buffer) => {
         return {
             data: buffer.toString() + "<script>alert(1)</script>"

@@ -8,21 +8,21 @@ import { v4 as uuid } from "uuid";
  *
  */
 
-export type PmsCAOptions = PmsCAFileOptions | PmsCAPathOptions;
+export type PPCaOptions = PPCaFileOptions | PPCaPathOptions;
 
-export type PmsCAFileOptions = {
+export type PPCaFileOptions = {
     key: string;
     cert: string;
     keyLength?: number;
 };
 
-export type PmsCAPathOptions = {
+export type PPCaPathOptions = {
     keyPath: string;
     certPath: string;
     keyLength?: number;
 }
 
-export type GeneratedCertificate = {
+export type PPGeneratedCertificate = {
     key: string,
     cert: string,
     ca: string
@@ -39,23 +39,23 @@ let KEY_PAIR: {
     length: number
 } | undefined;
 
-export class PmsCa {
+export class PPCa {
     private caCert: forge.pki.Certificate;
     private caKey: forge.pki.PrivateKey;
-    private certCache: { [domain: string]: GeneratedCertificate };
+    private certCache: { [domain: string]: PPGeneratedCertificate };
 
-    constructor(option: PmsCAOptions) {
+    constructor(option: PPCaOptions) {
         this.certCache = {};
         this.initCA(option);
     }
 
-    private initCA(options: PmsCAOptions) {
-        let httpsOptions: PmsCAFileOptions;
+    private initCA(options: PPCaOptions) {
+        let httpsOptions: PPCaFileOptions;
         if ((<any>options).key && (<any>options).cert) {
-            httpsOptions = <PmsCAFileOptions> options;
+            httpsOptions = <PPCaFileOptions> options;
         }
         else if ((<any>options).keyPath && (<any>options).certPath) {
-            let pathOptions = <PmsCAPathOptions> options;
+            let pathOptions = <PPCaPathOptions> options;
             httpsOptions = {
                 cert: fs.readFileSync(pathOptions.certPath, 'utf8'),
                 key: fs.readFileSync(pathOptions.keyPath, 'utf8'),
@@ -80,7 +80,7 @@ export class PmsCa {
         }
     }
 
-    generateCertificate(domain: string): GeneratedCertificate {
+    generateCertificate(domain: string): PPGeneratedCertificate {
         // TODO: Expire domains from the cache? Based on their actual expiry?
         if (this.certCache[domain]) return this.certCache[domain];
 

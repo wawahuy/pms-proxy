@@ -1,16 +1,16 @@
-import {PmsServerRequest, PmsServerResponse} from "./server";
+import {PPServerRequest, PPServerResponse} from "../server/server";
 import nodeFetch, {RequestInit} from "node-fetch";
-import {MayBePromise} from "./types";
+import {MayBePromise} from "../types";
 import http from "http";
 
-export type PmsServerCallbackHandler = (request: PmsServerRequest, response: PmsServerResponse) => MayBePromise<void>;
+export type PPCallbackHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
 
-export abstract class PmsServerHandler {
-    abstract handle(request: PmsServerRequest, response: PmsServerResponse): MayBePromise<void>;
+export abstract class PPHandler {
+    abstract handle(request: PPServerRequest, response: PPServerResponse): MayBePromise<void>;
 }
 
-export class PmsServerPassThroughHandler extends PmsServerHandler {
-    callbackInjectBuffer: (req: PmsServerRequest, buffer: Buffer) => MayBePromise<{
+export class PPPassThroughHandler extends PPHandler {
+    callbackInjectBuffer: (req: PPServerRequest, buffer: Buffer) => MayBePromise<{
         data: Buffer | string,
         headers?: http.IncomingHttpHeaders
     }>;
@@ -21,11 +21,11 @@ export class PmsServerPassThroughHandler extends PmsServerHandler {
         super();
     }
 
-    injectBuffer(callback: Required<PmsServerPassThroughHandler>['callbackInjectBuffer']) {
+    injectBuffer(callback: Required<PPPassThroughHandler>['callbackInjectBuffer']) {
         this.callbackInjectBuffer = callback;
     }
 
-    async handle(req: PmsServerRequest, res: PmsServerResponse) {
+    async handle(req: PPServerRequest, res: PPServerResponse) {
         const init: RequestInit = {
             compress: this.compress,
             headers: <any>req.headers,

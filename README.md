@@ -24,25 +24,27 @@ npm install pms-proxy
 ## Document
 
 ### Create server monitor http traffic
+
 ```javascript
-    const server = new PmsServerProxy()
-    server.listen(1234).then(() => {
-        console('created!');
-    })
+    const server = new PPServerProxy()
+server.listen(1234).then(() => {
+    console('created!');
+})
 ```
 
 ### Inject page 'abc.com'
+
 ```javascript
-    const pass = new PmsServerPassThroughHandler();
-    pass.injectBuffer((req, buffer) => {
-        return {
-            data: buffer.toString() + "<script>alert('hello world!')</script>"
-        };
-    })
-    
-    server.addRule()
-        .host([/abc\.com/g])
-        .setHandler(pass);
+    const pass = new PPPassThroughHandler();
+pass.injectBuffer((req, buffer) => {
+    return {
+        data: buffer.toString() + "<script>alert('hello world!')</script>"
+    };
+})
+
+server.addRule()
+    .host([/abc\.com/g])
+    .setHandler(pass);
 ```
 
 ### Handle any request
@@ -56,13 +58,14 @@ npm install pms-proxy
 
 
 ### Support monitor https traffic
+
 ```javascript
-    const server = new PmsServerProxy({
-        https: {
-            certPath: path.join(__dirname, '../certs/rootCA.pem'),
-            keyPath: path.join(__dirname, '../certs/rootCA.key')
-        }
-    });
+    const server = new PPServerProxy({
+    https: {
+        certPath: path.join(__dirname, '../certs/rootCA.pem'),
+        keyPath: path.join(__dirname, '../certs/rootCA.key')
+    }
+});
 ```
 
 - create CA cert:

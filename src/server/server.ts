@@ -1,40 +1,39 @@
 import {IncomingMessage, ServerResponse} from "http";
-import {ComboServer} from "./combo-server";
+import {PPComboServer} from "./combo-server";
 import http2 from "http2";
 import http from "http";
-import {PmsCa, PmsCAOptions} from "./ca";
+import {PPCa, PPCaOptions} from "../ca";
 import * as https from "https";
 import * as tls from "tls";
 import net from "net";
 import express from "express";
-import {PmsProxyRule} from "./rule";
+import {PPRule} from "../rule/rule";
 import * as Buffer from "buffer";
-import {PmsServerPassThroughHandler} from "./handler";
-import {PmsWebsocketProxy} from "./ws";
-
+import {PPPassThroughHandler} from "../handler/handler";
+import {PPWebsocketProxy} from "./ws";
 
 // import streams from "stream";
 // type SocketIsh<MinProps extends keyof net.Socket> = streams.Duplex & Partial<Pick<net.Socket, MinProps>>;
 
-export interface PmsServerProxyOptions {
-    https?: PmsCAOptions | undefined,
+export interface PPServerOptions {
+    https?: PPCaOptions | undefined,
     // version current not support http2
     // http2?: true | false | 'fallback'
 }
 
-export type PmsServerRequest = express.Request;
+export type PPServerRequest = express.Request;
 
-export type PmsServerResponse = express.Response;
+export type PPServerResponse = express.Response;
 
-export class PmsServerProxy {
-    private server: ComboServer;
+export class PPServerProxy {
+    private server: PPComboServer;
     private app: express.Express;
-    private ws: PmsWebsocketProxy;
+    private ws: PPWebsocketProxy;
 
-    private readonly rules: PmsProxyRule[];
+    private readonly rules: PPRule[];
 
     constructor(
-        private options?: PmsServerProxyOptions
+        private options?: PPServerOptions
     ) {
         this.init();
         this.rules = [];
@@ -54,9 +53,9 @@ export class PmsServerProxy {
         this.server.close();
     }
 
-    addRule(rule?: PmsProxyRule) {
+    addRule(rule?: PPRule) {
         if (!rule) {
-            rule = new PmsProxyRule()
+            rule = new PPRule()
         }
         this.rules.push(rule);
         return rule;
@@ -65,7 +64,7 @@ export class PmsServerProxy {
     private init() {
         let options: https.ServerOptions;
         if (this.options && this.options.https) {
-            const ca = new PmsCa(this.options.https);
+            const ca = new PPCa(this.options.https);
             const certLocal = ca.generateCertificate('localhost');
             options = {
                 cert: certLocal.cert,
@@ -96,12 +95,12 @@ export class PmsServerProxy {
         }
 
 
-        this.server = new ComboServer(this.handleNativeRequest.bind(this), options);
+        this.server = new PPComboServer(this.handleNativeRequest.bind(this), options);
         this.server.on('connection', this.handleConnection.bind(this));
         this.server.on('secureConnection', this.handleSecureConnection.bind(this));
         this.server.addListener('connect', this.handleConnect.bind(this));
 
-        this.ws = new PmsWebsocketProxy();
+        this.ws = new PPWebsocketProxy();
         this.server.on('upgrade', this.ws.handleUpgrade.bind(this.ws));
 
         this.app = express();
@@ -131,7 +130,7 @@ export class PmsServerProxy {
         }
 
         // Forward traffic
-        const pass = new PmsServerPassThroughHandler(false);
+        const pass = new PPPassThroughHandler(false);
         await pass.handle(req, res);
     }
 

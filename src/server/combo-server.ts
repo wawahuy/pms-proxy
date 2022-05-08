@@ -10,7 +10,7 @@ import EventEmitter from "events";
  * https://github.com/httptoolkit/httpolyglot/blob/master/src/index.ts
  *
  */
-export class ComboServer extends net.Server {
+export class PPComboServer extends net.Server {
     private readonly httpServer: http.Server;
     private readonly http2Server: http2.Http2Server;
     private readonly tlsServer: tls.Server;

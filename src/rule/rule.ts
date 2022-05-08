@@ -1,21 +1,21 @@
-import {PmsServerRequest, PmsServerResponse} from "./server";
-import {PmsServerCallbackHandler, PmsServerHandler} from "./handler";
-import {MayBePromise} from "./types";
+import {PPServerRequest, PPServerResponse} from "../server/server";
+import {PPCallbackHandler, PPHandler} from "../handler/handler";
+import {MayBePromise} from "../types";
 
-export type PmsProxyRuleMatch = (req: PmsServerRequest) => MayBePromise<boolean>;
+export type PPRuleMatch = (req: PPServerRequest) => MayBePromise<boolean>;
 
-export type PmsProxyRuleValue = string | string | RegExp | RegExp[] | ((value: string) => boolean);
+export type PPRuleValue = string | string | RegExp | RegExp[] | ((value: string) => boolean);
 
-export class PmsProxyRule {
-    private listMatch: PmsProxyRuleMatch[] = [];
+export class PPRule {
+    private listMatch: PPRuleMatch[] = [];
 
     constructor(
-        private handler?: PmsServerCallbackHandler | PmsServerHandler
+        private handler?: PPCallbackHandler | PPHandler
     ) {
     }
 
-    handle(req: PmsServerRequest, res: PmsServerResponse) {
-        if (this.handler instanceof PmsServerHandler) {
+    handle(req: PPServerRequest, res: PPServerResponse) {
+        if (this.handler instanceof PPHandler) {
             return this.handler.handle(req, res);
         } else if(typeof this.handler === 'function') {
             return this.handler(req, res);
@@ -24,46 +24,46 @@ export class PmsProxyRule {
         }
     }
 
-    match(callback: PmsProxyRuleMatch){
+    match(callback: PPRuleMatch){
         this.listMatch.push(callback);
         return this;
     }
 
-    host(host: PmsProxyRuleValue) {
+    host(host: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.hostname, host);
         })
     }
 
-    url(url: PmsProxyRuleValue) {
+    url(url: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.url, url);
         })
     }
 
-    body(key: string, value: PmsProxyRuleValue) {
+    body(key: string, value: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.body?.[key], value);
         })
     }
 
-    query(key: string, value: PmsProxyRuleValue) {
+    query(key: string, value: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.query?.[key]?.toString(), value);
         })
     }
 
-    header(key: string, value: PmsProxyRuleValue) {
+    header(key: string, value: PPRuleValue) {
         return this.match(req => {
             return this.compare(req.headers?.[key]?.toString(), value);
         })
     }
 
-    setHandler(handler: PmsServerCallbackHandler | PmsServerHandler) {
+    setHandler(handler: PPCallbackHandler | PPHandler) {
         this.handler = handler;
     }
 
-    async test(req: PmsServerRequest) {
+    async test(req: PPServerRequest) {
         for(let match of this.listMatch) {
             if (!await match(req)) {
                 return false;
@@ -72,7 +72,7 @@ export class PmsProxyRule {
         return true;
     }
 
-    private compare(a: string, b: PmsProxyRuleValue) {
+    private compare(a: string, b: PPRuleValue) {
         if (typeof b === 'string') {
             return a === b;
         } else if(typeof b === 'function') {

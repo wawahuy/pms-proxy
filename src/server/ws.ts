@@ -10,7 +10,7 @@ type CustomIncomingMessage = http.IncomingMessage & {
     hostname: string;
 }
 
-export class PmsWebsocketProxy {
+export class PPWebsocketProxy {
     private wss: WebSocket.WebSocketServer;
 
     constructor() {

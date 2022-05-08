@@ -1,4 +1,4 @@
-import {PmsServerProxy} from "../src/server";
+import {PPServerProxy} from "../src/server/server";
 
 describe('test', () => {
 
