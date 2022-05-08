@@ -12,7 +12,6 @@ export class PPHttpRule extends PPRule<PPServerRequest, PPHttpHandler | PPCallba
     }
 
     handle(req: PPServerRequest, res: PPServerResponse) {
-        req.query
         if (this.handler instanceof PPHttpHandler) {
             return this.handler.handle(req, res);
         } else if(typeof this.handler === 'function') {

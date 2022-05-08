@@ -2,12 +2,15 @@ import {PPServerRequest, PPServerResponse} from "../server/server";
 import nodeFetch, {RequestInit} from "node-fetch";
 import {MayBePromise} from "../types";
 import http from "http";
+import express from "express";
 
 export type PPCallbackHttpHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
 
 export abstract class PPHttpHandler {
     abstract handle(request: PPServerRequest, response: PPServerResponse): MayBePromise<void>;
 }
+
+export const createAppHttpHandler = () => express();
 
 export class PPPassThroughHttpHandler extends PPHttpHandler {
     callbackInjectBuffer: (req: PPServerRequest, buffer: Buffer) => MayBePromise<{

@@ -24,6 +24,8 @@ export interface PPServerOptions {
 
 export type PPServerResponse = express.Response;
 
+export type PPServerRequest = express.Request;
+
 export class PPServerProxy {
     private server: PPComboServer;
     private app: express.Express;
@@ -58,6 +60,10 @@ export class PPServerProxy {
         }
         this.rules.push(rule);
         return rule;
+    }
+
+    getWebsocket() {
+        return this.ws;
     }
 
     private init() {

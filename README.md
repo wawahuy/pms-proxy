@@ -19,40 +19,80 @@ npm install pms-proxy
 -
 
 ## Document
+### Require
+- Javascript
+```javascript
+const PPServerProxy = require('pms-proxy');
+```
+- Typescript
+```javascript
+import PPServerProxy from "pms-proxy";
+```
 
 ### Create server monitor http traffic
 
 ```javascript
     const server = new PPServerProxy()
-server.listen(1234).then(() => {
-    console('created!');
-})
+    server.listen(1234).then(() => {
+        console('created!');
+    })
 ```
 
 ### Inject page 'abc.com'
 
 ```javascript
     const pass = new PPPassThroughHttpHandler();
-pass.injectBuffer((req, buffer) => {
-    return {
-        data: buffer.toString() + "<script>alert('hello world!')</script>"
-    };
-})
+    pass.injectBuffer((req, buffer) => {
+        return {
+            data: buffer.toString() + "<script>alert('hello world!')</script>"
+        };
+    })
 
-server.addRule()
-    .host([/abc\.com/g])
-    .setHandler(pass);
+    server.addRule()
+        .host(/abc\.com/g)
+        // or .host("abc.com")
+        // or .host((host) => host === "abc.com")
+        .then(pass);
 ```
 
 ### Handle any request
 ```javascript
-    s.addRule()
-        .match(() => true)
-        .setHandler((req, res) => {
+    server.addRule()
+        .any()
+        .then((req, res) => {
             res.status(200).write('Hello world!');
         })
 ```
 
+### Create fake website
+```javascript
+    /// app as express
+    const app = createAppHttpHandler();
+    app.get('/', (req, res) => {
+        res.status(200).send('oke');
+    })
+    server.addRule().host('test-fake.com').then(app);
+```
+
+### Create fake websocket 'abc.com'
+```javascript
+    const ws = server.getWebsocket();
+    ws.addRule()
+        .host('abc.com')
+        .then((req, ws) => {
+            ws.send('oke ws');
+        })
+```
+
+### Inject websocket 'abc.com'
+```javascript
+    const inject = new PPPassThroughWsHandler();
+    inject.injectSend(data => data.toString() + ' inject!');
+    inject.injectReceive(data => data.toString() + ' inject!');
+
+    const ws = server.getWebsocket();
+    ws.addRule().host('abc.com').then(inject)
+```
 
 ### Support monitor https traffic
 

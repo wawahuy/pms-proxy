@@ -2,8 +2,9 @@
 import request from 'request';
 import path from "path";
 import fs from "fs";
-import {PPPassThroughHttpHandler} from "./handler/http-handler";
+import {createAppHttpHandler, PPPassThroughHttpHandler} from "./handler/http-handler";
 import {PPServerProxy} from "./server/server";
+import {PPPassThroughWsHandler} from "./handler/ws-handler";
 
 const s = new PPServerProxy({
     https: {
@@ -23,23 +24,27 @@ s.listen(1234).then(r => {
         .host([/test-google\.com/g])
         .then(pass);
 
-    // s.addRule()
-    //     .match(() => true)
-    //     .setHandler((req, res) => {
-    //         console.log(req.url);
-    //         res.status(200).write('Hello world!');
-    //     })
+    const app = createAppHttpHandler();
+    app.get('/abc', (req, res) => {
+        res.status(200).send('oke');
+    })
+    s.addRule().host('test-fake.com').then(app);
 
-    for (let i of [1,2]) {
-        request('https://google.com/test?a=' + i, {
-            proxy: 'http://localhost:1234',
-            ca: fs.readFileSync(path.join(__dirname, '../certs/rootCA.pem'))
-        }, (err, res) => {
-            if (!!err) {
-                console.log(err.name);
-                return;
-            }
-            console.log(res.body.length);
-        })
-    }
+    const inject = new PPPassThroughWsHandler();
+    inject.injectSend(data => data.toString() + ' inject!');
+    inject.injectReceive(data => data.toString() + ' inject!');
+
+    const ws = s.getWebsocket();
+    ws.addRule().host('abc.com').then(inject)
+
+    request('https://google.com/test?a=', {
+        proxy: 'http://localhost:1234',
+        ca: fs.readFileSync(path.join(__dirname, '../certs/rootCA.pem'))
+    }, (err, res) => {
+        if (!!err) {
+            console.log(err.name);
+            return;
+        }
+        console.log(res.body.length);
+    })
 });

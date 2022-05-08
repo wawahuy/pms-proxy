@@ -3,21 +3,36 @@ import http from "http";
 import net from "net";
 import Buffer from "buffer";
 import * as tls from "tls";
+import {PPHttpRule} from "../rule/http-rule";
+import {ParsedQs} from "qs";
+import {PPWsRule} from "../rule/ws-rule";
+import {PPPassThroughWsHandler} from "../handler/ws-handler";
 
 export type PPIncomingMessage = http.IncomingMessage & {
     protocol: string;
-    query: string;
     hostname: string;
+    query: ParsedQs;
+    url: string;
 }
 
 export class PPWebsocketProxy {
-    private wss: WebSocket.WebSocketServer;
+    private readonly rules: PPWsRule[];
+    private wss: WebSocketServer;
 
     constructor() {
+        this.rules = [];
         this.wss = new WebSocketServer({
             noServer: true
         });
         this.wss.on('connection', this.handleConnection.bind(this));
+    }
+
+    addRule(rule?: PPWsRule) {
+        if (!rule) {
+            rule = new PPWsRule()
+        }
+        this.rules.push(rule);
+        return rule;
     }
 
     handleUpgrade(request: PPIncomingMessage, socket: net.Socket, head: Buffer) {
@@ -40,8 +55,7 @@ export class PPWebsocketProxy {
         });
     }
 
-    handleConnection(wsA: WebSocket.WebSocket, request: PPIncomingMessage) {
-
+    async handleConnection(ws: WebSocket.WebSocket, request: PPIncomingMessage) {
         delete request.headers["accept-encoding"]
         delete request.headers.connection;
         delete request.headers.upgrade;
@@ -49,36 +63,16 @@ export class PPWebsocketProxy {
         delete request.headers["sec-websocket-extensions"];
         delete request.headers["sec-websocket-key"];
 
-        let queueData: any[] = [];
-        const wsB = new WebSocket(request.url, { headers: request.headers });
-        wsB.on('open', () => {
-            queueData.forEach(data => {
-                wsB.send(data);
-            })
-            queueData = [];
-        })
-        wsB.on('message', (data) => {
-            wsA.send(data);
-        })
-        wsB.on('close', (code, reason) => {
-            wsB.close(code, reason);
-        })
-        wsB.on('error', (err) => {
-            wsB.close();
-        })
-
-        wsA.on('message', data => {
-            if (wsB.readyState !== WebSocket.OPEN) {
-                queueData.push(data);
-            } else {
-                wsB.send(data)
+        // Check rules
+        for (let rule of this.rules) {
+            if (await rule.test(request)) {
+                // async
+                return rule.handle(request, ws);
             }
-        })
-        wsA.on('close', (code, reason) => {
-            wsA.close(code, reason);
-        })
-        wsA.on('error', (err) => {
-            wsA.close();
-        })
+        }
+
+        // Forward traffic
+        const pass = new PPPassThroughWsHandler();
+        pass.handle(request, ws);
     }
 }
