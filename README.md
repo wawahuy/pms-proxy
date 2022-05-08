@@ -22,7 +22,7 @@ npm install pms-proxy
 ### Require
 - Javascript
 ```javascript
-const PPServerProxy = require('pms-proxy');
+const {PPServerProxy} = require('pms-proxy');
 ```
 - Typescript
 ```javascript
