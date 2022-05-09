@@ -21,7 +21,7 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
     }>;
 
     constructor(
-        private compress: boolean = true,
+        private compress: boolean = true
     ) {
         super();
     }
@@ -41,10 +41,6 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
                 : req.readableEnded ? req.body : req,
             redirect: "manual",
             signal: abort.signal
-        }
-        if (req.url.match(/\/waka/g)) {
-            console.log(req.url);
-            console.log(req.headers)
         }
         const forwardResponse = await nodeFetch(req.url, init)
             .catch(e => {

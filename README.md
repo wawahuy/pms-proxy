@@ -29,13 +29,26 @@ const {PPServerProxy} = require('pms-proxy');
 import PPServerProxy from "pms-proxy";
 ```
 
-### Create server monitor http traffic
+### Create server
 
 ```javascript
     const server = new PPServerProxy()
     server.listen(1234).then(() => {
         console('created!');
     })
+```
+
+### Websocket Forward
+```javascript
+    const forwardDst = 'wss://socketsbay.com/wss/v2/2/demo/';
+    server.getWebsocket()
+        .addRule()
+        .host('abc.com')
+        .then(new PPPassThroughWsHandler(forwardDst))
+    server.getWebsocket()
+        .addRule()
+        .url(/wss:\/\/hello\.com/)
+        .then(new PPPassThroughWsHandler(forwardDst))
 ```
 
 ### Monitor all traffics http & https

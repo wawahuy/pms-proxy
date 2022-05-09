@@ -1,6 +1,7 @@
 import {MayBePromise} from "../types";
 import {PPIncomingMessage, PPWebsocket, PPWebsocketRawData} from "../server/ws";
 import WebSocket from "ws";
+import * as Url from "url";
 
 export type PPCallbackWsHandler = (request: PPIncomingMessage, ws: WebSocket.WebSocket) => MayBePromise<void>;
 
@@ -11,19 +12,27 @@ export abstract class PPWsHandler {
 
 export class PPPassThroughWsHandler extends PPWsHandler {
     private callbackSend: (data: any) => any;
-    private callbackReceive: (data: WebSocket.RawData) => any;
+    private callbackReceive: (data: WebSocket.RawData | string) => any;
+
+    constructor(
+        private forwardDst?: string
+    ) {
+        super();
+    }
 
     injectSend(callback: (data: any) => any) {
         this.callbackSend = callback;
     }
 
-    injectReceive(callback: (data: PPWebsocketRawData) => any) {
+    injectReceive(callback: (data: PPWebsocketRawData | string) => any) {
         this.callbackReceive = callback;
     }
 
     handle(request: PPIncomingMessage, ws: PPWebsocket): MayBePromise<void> {
+        this.rewriteHeaders(request);
         let queueData: any[] = [];
-        let wsRemote = new WebSocket(request.url, { headers: request.headers });
+        let wsUrl = this.forwardDst ? this.forwardDst : request.url;
+        let wsRemote = new WebSocket(wsUrl, { headers: request.headers });
 
         wsRemote.on('open', () => {
             queueData.forEach(data => {
@@ -31,11 +40,15 @@ export class PPPassThroughWsHandler extends PPWsHandler {
             })
             queueData = [];
         })
-        wsRemote.on('message', (data) => {
-            if (this.callbackReceive) {
-                data = this.callbackReceive(data);
+        wsRemote.on('message', (data, isBinary) => {
+            let d: PPWebsocketRawData | string = data;
+            if (!isBinary) {
+                d = data.toString();
             }
-            ws.send(data);
+            if (this.callbackReceive) {
+                d = this.callbackReceive(d);
+            }
+            ws.send(d);
         })
         wsRemote.on('close', (code, reason) => {
             try {
@@ -48,14 +61,18 @@ export class PPPassThroughWsHandler extends PPWsHandler {
             ws.close();
         })
 
-        ws.on('message', data => {
+        ws.on('message', (data, isBinary) => {
+            let d: PPWebsocketRawData | string = data;
+            if (!isBinary) {
+                d = data.toString();
+            }
             if (this.callbackSend) {
-                data = this.callbackSend(data);
+                d = this.callbackSend(d);
             }
             if (wsRemote.readyState !== WebSocket.OPEN) {
-                queueData.push(data);
+                queueData.push(d);
             } else {
-                wsRemote.send(data)
+                wsRemote.send(d)
             }
         })
         ws.on('close', (code, reason) => {
@@ -68,6 +85,14 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         ws.on('error', (err) => {
             wsRemote.close();
         })
+    }
+
+    private rewriteHeaders(request: PPIncomingMessage) {
+        if (this.forwardDst) {
+            const url = Url.parse(request.url, true);
+            const headers = request.headers;
+            headers['host'] = url.hostname;
+        }
     }
 
 }
