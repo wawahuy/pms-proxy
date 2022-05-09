@@ -36,9 +36,15 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
             compress: this.compress,
             headers: <any>req.headers,
             method: req.method,
-            body: req.method === 'GET' || req.method === 'HEAD' ? null : req,
+            body: req.method === 'GET' || req.method === 'HEAD'
+                ? null
+                : req.readableEnded ? req.body : req,
             redirect: "manual",
             signal: abort.signal
+        }
+        if (req.url.match(/\/waka/g)) {
+            console.log(req.url);
+            console.log(req.headers)
         }
         const forwardResponse = await nodeFetch(req.url, init)
             .catch(e => {
