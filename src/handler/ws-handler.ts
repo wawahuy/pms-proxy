@@ -38,7 +38,11 @@ export class PPPassThroughWsHandler extends PPWsHandler {
             ws.send(data);
         })
         wsRemote.on('close', (code, reason) => {
-            ws.close(code, reason);
+            try {
+                ws.close(code, reason);
+            } catch (e) {
+                ws.close();
+            }
         })
         wsRemote.on('error', (err) => {
             ws.close();
@@ -55,7 +59,11 @@ export class PPPassThroughWsHandler extends PPWsHandler {
             }
         })
         ws.on('close', (code, reason) => {
-            wsRemote.close(code, reason);
+            try {
+                wsRemote.close(code, reason);
+            } catch (e) {
+                wsRemote.close();
+            }
         })
         ws.on('error', (err) => {
             wsRemote.close();
