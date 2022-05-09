@@ -13,6 +13,21 @@ const s = new PPServerProxy({
     }
 });
 s.listen(1234).then(r => {
+    s.addRule()
+        .any()
+        .then(async (request, response) => {
+            console.log(request.method, request.url);
+
+            const passThrough = new PPPassThroughHttpHandler();
+            passThrough.injectBuffer((request, buffer) => {
+                console.log('--> response buffer size', buffer.length);
+                return { data: buffer };
+            })
+
+            await passThrough.handle(request, response);
+        })
+
+
     const pass = new PPPassThroughHttpHandler();
     pass.injectBuffer((req, buffer) => {
         return {
@@ -30,12 +45,12 @@ s.listen(1234).then(r => {
     })
     s.addRule().host('test-fake.com').then(app);
 
-    const inject = new PPPassThroughWsHandler();
-    inject.injectSend(data => data.toString() + ' inject!');
-    inject.injectReceive(data => data.toString() + ' inject!');
-
-    const ws = s.getWebsocket();
-    ws.addRule().host('abc.com').then(inject)
+    s.getWebsocket()
+        .addRule()
+        .url(/\/websocket-pms\/success/gmi)
+        .then((req, res) => {
+            console.log('oke')
+        });
 
     request('https://google.com/test?a=', {
         proxy: 'http://localhost:1234',

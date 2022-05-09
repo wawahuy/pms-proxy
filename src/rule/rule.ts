@@ -24,7 +24,7 @@ export class PPRule<TMatch extends IMatch, THandler> {
     }
 
     any() {
-        return () => true;
+        return this.match(req => true)
     }
 
     host(host: PPRuleValue) {

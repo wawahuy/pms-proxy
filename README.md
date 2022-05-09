@@ -38,6 +38,24 @@ import PPServerProxy from "pms-proxy";
     })
 ```
 
+### Monitor all traffics http & https
+Note: https only capture when provide CA cert, and install CA cert in machine
+```javascript
+    server.addRule()
+        .any()
+        .then(async (request, response) => {
+            console.log(request.method, request.url);
+
+            const passThrough = new PPPassThroughHttpHandler();
+            passThrough.injectBuffer((request, buffer) => {
+                console.log('--> response buffer size', buffer.length);
+                return { data: buffer };
+            })
+
+            await passThrough.handle(request, response);
+        })
+```
+
 ### Inject page 'abc.com'
 
 ```javascript
