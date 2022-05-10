@@ -60,6 +60,16 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         wsRemote.on('error', (err) => {
             ws.close();
         })
+        wsRemote.on('ping', (data) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.ping(data);
+            }
+        })
+        wsRemote.on('pong', (data) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.pong(data);
+            }
+        })
 
         ws.on('message', (data, isBinary) => {
             let d: PPWebsocketRawData | string = data;
@@ -84,6 +94,16 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         })
         ws.on('error', (err) => {
             wsRemote.close();
+        })
+        ws.on('ping', (data) => {
+            if (wsRemote.readyState === WebSocket.OPEN) {
+                wsRemote.ping(data);
+            }
+        })
+        ws.on('pong', (data) => {
+            if (wsRemote.readyState === WebSocket.OPEN) {
+                wsRemote.pong(data);
+            }
         })
     }
 
