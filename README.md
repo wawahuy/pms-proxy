@@ -10,6 +10,8 @@ npm install pms-proxy
 
 
 ## Todo
+- Error: unable to verify the first certificate
+- Pass when not trust CA
 - Write unit test
 - Setup CI
 - 

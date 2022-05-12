@@ -44,6 +44,7 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
         }
         const forwardResponse = await nodeFetch(req.url, init)
             .catch(e => {
+                console.log(e);
                 res.status(500).end();
                 return null
             });

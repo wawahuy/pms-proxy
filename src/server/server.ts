@@ -17,6 +17,7 @@ import {PPHttpRule} from "../rule/http-rule";
 
 export interface PPServerOptions {
     https?: PPCaOptions | undefined,
+    ignoreUnencryptedTslPacket?: boolean
     // version current not support http2
     // http2?: true | false | 'fallback'
 }
@@ -170,6 +171,11 @@ export class PPServerProxy {
         socket: net.Socket,
         upgradeHead: Buffer
     ) {
+        if (this.options?.ignoreUnencryptedTslPacket) {
+            socket.destroy();
+            return
+        }
+
         const uSplit = req.url.split(':');
         const port = Number(uSplit?.[1]) || 443;
         const domain = uSplit[0];
