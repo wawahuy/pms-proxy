@@ -89,10 +89,6 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
             res.write(data);
             res.end()
         } else {
-            if (forwardResponse.status === 400) {
-                console.log(req.headers)
-                console.log(req.body);
-            }
             res.writeHead(forwardResponse.status, forwardResponseHeaders);
             forwardResponse.body.pipe(res);
         }
