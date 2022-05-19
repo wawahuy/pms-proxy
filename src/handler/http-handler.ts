@@ -4,6 +4,7 @@ import {MayBePromise} from "../types";
 import http from "http";
 import express from "express";
 import AbortControllerLib from "abort-controller";
+import {del} from "request";
 const AbortController = globalThis.AbortController || AbortControllerLib;
 
 export type PPCallbackHttpHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
@@ -21,7 +22,8 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
     }>;
 
     constructor(
-        private compress: boolean = true
+        private compress: boolean = true,
+        private removeCached: boolean = false,
     ) {
         super();
     }
@@ -32,9 +34,17 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
 
     async handle(req: PPServerRequest, res: PPServerResponse) {
         const abort = new AbortController();
+
+        // custom headers
+        const headers = <any>req.headers;
+        if (this.removeCached) {
+            delete headers['if-modified-since'];
+            delete headers['if-none-match'];
+        }
+
         const init: RequestInit = {
             compress: this.compress,
-            headers: <any>req.headers,
+            headers,
             method: req.method,
             body: req.method === 'GET' || req.method === 'HEAD'
                 ? null
@@ -52,7 +62,8 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
             return
         }
 
-        forwardResponse.body.on("error", () => {
+        forwardResponse.body.on("error", (err) => {
+            console.log(err)
             res.status(500).end();
         })
 
@@ -74,7 +85,6 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
             if (!buffer) {
                 return;
             }
-
             const result = await this.callbackInjectBuffer(req, buffer);
             if (result.headers) {
                 forwardResponseHeaders = Object.assign(forwardResponseHeaders, result.headers);

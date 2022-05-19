@@ -64,6 +64,8 @@ export class PPWebsocketProxy {
         delete request.headers["sec-websocket-version"];
         delete request.headers["sec-websocket-extensions"];
         delete request.headers["sec-websocket-key"];
+        delete request.headers["sec-websocket-protocol"];
+        delete request.headers["sec-websocket-accept"];
 
         // Check rules
         for (let rule of this.rules) {

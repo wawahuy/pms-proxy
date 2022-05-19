@@ -13,6 +13,20 @@ const s = new PPServerProxy({
     }
 });
 s.listen(1234).then(r => {
+    const h = new PPPassThroughHttpHandler(true, true);
+    h.injectBuffer((h, b) => {
+        const p = /function[\s]+removeJwp\(\)[\s]?\{/gmi;
+        const p2 = /devtoolsDetector\[_0x2b36\[11\]\]\(\)/gmi;
+        const p3 =/debugger/gmi;
+        const out = b.toString()
+            .replace(p, "function removeJwp() { return;")
+            .replace(p2, "false")
+            .replace(p3, "cc")
+        return {
+            data: out+";cc=1;"
+        }
+    })
+    s.addRule().url(/playhydrax\.min\.js/).then(h)
     // s.addRule()
     //     .any()
     //     .then(async (request, response) => {
