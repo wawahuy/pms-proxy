@@ -58,15 +58,7 @@ export class PPWebsocketProxy {
     }
 
     async handleConnection(ws: PPWebsocket, request: PPIncomingMessage) {
-        delete request.headers["accept-encoding"]
-        delete request.headers.connection;
-        delete request.headers.upgrade;
-        delete request.headers["sec-websocket-version"];
-        delete request.headers["sec-websocket-extensions"];
-        delete request.headers["sec-websocket-key"];
-        delete request.headers["sec-websocket-protocol"];
-        delete request.headers["sec-websocket-accept"];
-
+        // delete request.headers["accept-encoding"]
         // Check rules
         for (let rule of this.rules) {
             if (await rule.test(request)) {
