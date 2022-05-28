@@ -10,7 +10,6 @@ npm install pms-proxy
 
 
 ## Todo
-- Fix Websocket
 - Write unit test
 - Setup CI
 - 

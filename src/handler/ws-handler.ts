@@ -32,7 +32,12 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         this.rewriteHeaders(request);
         let queueData: any[] = [];
         let wsUrl = this.forwardDst ? this.forwardDst : request.url;
-        let wsRemote = new WebSocket(wsUrl, { headers: request.headers , followRedirects: true});
+        let protocol = request.headers['sec-websocket-protocol'];
+        let wsRemote = new WebSocket(
+            wsUrl,
+            !protocol ? [] : [protocol],
+            { headers: request.headers }
+        );
 
         wsRemote.on('open', () => {
             setTimeout(() => {

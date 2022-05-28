@@ -701,7 +701,7 @@ function initAsClient(websocket, address, protocols, options) {
   }
 
   const defaultPort = isSecure ? 443 : 80;
-  const key = randomBytes(16).toString('base64');
+  const key = options.headers['sec-websocket-key'] || randomBytes(16).toString('base64');
   const request = isSecure ? https.request : http.request;
   const protocolSet = new Set();
   let perMessageDeflate;
