@@ -142,3 +142,18 @@ openssl genrsa -out rootCA.key 2048
 openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 1825 -out rootCA.pem
 openssl pkcs12 -export -out rootCA.p12 -inkey rootCA.key -in rootCA.pem
 ```
+
+- create monitor https & SPKI
+```typescript
+    const https = await PPCa.generateCACertificate();
+    const spki = PPCa.generateSPKIFingerprint((<PPCaFileOptions>https).cert);
+    const userData = path.join('C:/test-chrome');
+
+    const server = new PPServerProxy({https});
+    await server.listen(1234);
+
+    // node module
+    child_process.exec(
+        `start chrome --proxy-server="http://127.0.0.1:1234" --ignore-certificate-errors-spki-list=\"${spki}\" --user-data-dir=\"${userData}\"`
+    );
+```
