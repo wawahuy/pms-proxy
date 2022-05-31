@@ -4,6 +4,7 @@ import net from "net";
 import Buffer from "buffer";
 import * as tls from "tls";
 import {ParsedQs} from "qs";
+import urlLib from "url";
 import {PPWsRule} from "../rule/ws-rule";
 import {PPPassThroughWsHandler} from "../handler/ws-handler";
 
@@ -51,6 +52,9 @@ export class PPWebsocketProxy {
         if (!request.url.match(/^ws[s]?:\/\//gmi)) {
             request.url = `${request.protocol}://${request.hostname}${request.url}`
         }
+
+        const urlParse = urlLib.parse(request.url, true);
+        request.query = urlParse.query;
 
         this.wss.handleUpgrade(request, socket, head, (ws) => {
             this.wss.emit('connection', ws, request);

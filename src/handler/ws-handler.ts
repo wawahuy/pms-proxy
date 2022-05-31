@@ -42,18 +42,12 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         wsRemote.on('open', () => {
             setTimeout(() => {
                 queueData.forEach(data => {
-                    if (request.hostname === 'deannafoster.websocketgate.com') {
-                        console.log('send queue', data.length)
-                    }
                     wsRemote.send(data);
                 })
                 queueData = [];
             }, 1000)
         })
         wsRemote.on('message', (data, isBinary) => {
-            if (request.hostname === 'deannafoster.websocketgate.com') {
-                console.log('recv', data)
-            }
             let d: PPWebsocketRawData | string = data;
             if (!isBinary) {
                 d = data.toString();
@@ -86,9 +80,6 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         })
 
         ws.on('message', (data, isBinary) => {
-            if (request.hostname === 'deannafoster.websocketgate.com') {
-                console.log('send', data)
-            }
             let d: PPWebsocketRawData | string = data;
             if (!isBinary) {
                 d = data.toString();
