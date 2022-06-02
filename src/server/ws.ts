@@ -1,4 +1,4 @@
-import WebSocket, {WebSocketServer} from "ws";
+import WebSocket, {WebSocketServer} from "../../ws";
 import http from "http";
 import net from "net";
 import Buffer from "buffer";

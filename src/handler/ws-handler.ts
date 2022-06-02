@@ -1,6 +1,6 @@
 import {MayBePromise} from "../types";
 import {PPIncomingMessage, PPWebsocket, PPWebsocketRawData} from "../server/ws";
-import WebSocket from "ws";
+import WebSocket from "../../ws";
 import * as Url from "url";
 
 export type PPCallbackWsHandler = (request: PPIncomingMessage, ws: WebSocket.WebSocket) => MayBePromise<void>;
