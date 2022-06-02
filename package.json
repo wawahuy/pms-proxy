@@ -1,6 +1,6 @@
 {
   "name": "pms-proxy",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "PMS mitm proxy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,7 +15,10 @@
     "types",
     "dist",
     "browser.js",
-    "ws"
+    "ws/browser.js",
+    "ws/index.js",
+    "ws/lib/*.js",
+    "ws/wrapper.mjs"
   ],
   "browser": "browser.js",
   "keywords": [
