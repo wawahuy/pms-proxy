@@ -8,16 +8,6 @@ Supports http/https traffic monitoring.
 npm install pms-proxy
 ```
 
-
-## Todo
-- Write unit test
-- Setup CI
-- 
-
-## Progress
-- Support http2
--
-
 ## Document
 ### Require
 - Javascript
