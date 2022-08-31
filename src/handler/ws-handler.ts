@@ -2,6 +2,7 @@ import {MayBePromise} from "../types";
 import {PPIncomingMessage, PPWebsocket, PPWebsocketRawData} from "../server/ws";
 import WebSocket from "../../ws";
 import * as Url from "url";
+import {SocksProxyAgent} from "socks-proxy-agent";
 
 export type PPCallbackWsHandler = (request: PPIncomingMessage, ws: WebSocket.WebSocket) => MayBePromise<void>;
 
@@ -11,6 +12,9 @@ export abstract class PPWsHandler {
 
 
 export class PPPassThroughWsHandler extends PPWsHandler {
+    public static agents: SocksProxyAgent[];
+    public static agentCurrent = 0;
+
     private callbackSend: (data: any) => any;
     private callbackReceive: (data: WebSocket.RawData | string) => any;
 
@@ -33,10 +37,21 @@ export class PPPassThroughWsHandler extends PPWsHandler {
         let queueData: any[] = [];
         let wsUrl = this.forwardDst ? this.forwardDst : request.url;
         let protocol = request.headers['sec-websocket-protocol'];
+
+        const options: { [key: string]: any } = { headers: request.headers };
+        const agents = PPPassThroughWsHandler.agents;
+        if (agents?.length) {
+            const agent = agents[PPPassThroughWsHandler.agentCurrent++];
+            if (PPPassThroughWsHandler.agentCurrent >= agents.length) {
+                PPPassThroughWsHandler.agentCurrent = 0;
+            }
+            options.agent = agent;
+        }
+
         let wsRemote = new WebSocket(
             wsUrl,
             !protocol ? [] : [protocol],
-            { headers: request.headers }
+            options
         );
 
         wsRemote.on('open', () => {

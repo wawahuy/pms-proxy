@@ -5,6 +5,7 @@ import http from "http";
 import express from "express";
 import AbortControllerLib from "abort-controller";
 import {del} from "request";
+import {SocksProxyAgent} from "socks-proxy-agent";
 const AbortController = globalThis.AbortController || AbortControllerLib;
 
 export type PPCallbackHttpHandler = (request: PPServerRequest, response: PPServerResponse) => MayBePromise<void>;
@@ -16,6 +17,9 @@ export abstract class PPHttpHandler {
 export const createAppHttpHandler = () => express();
 
 export class PPPassThroughHttpHandler extends PPHttpHandler {
+    public static agents: SocksProxyAgent[];
+    public static agentCurrent = 0;
+
     callbackInjectBuffer: (req: PPServerRequest, buffer: Buffer) => MayBePromise<{
         data: Buffer | string,
         headers?: http.IncomingHttpHeaders
@@ -52,6 +56,16 @@ export class PPPassThroughHttpHandler extends PPHttpHandler {
             redirect: "manual",
             signal: abort.signal
         }
+
+        const agents = PPPassThroughHttpHandler.agents;
+        if (agents?.length) {
+            const agent = agents[PPPassThroughHttpHandler.agentCurrent++];
+            if (PPPassThroughHttpHandler.agentCurrent >= agents.length) {
+                PPPassThroughHttpHandler.agentCurrent = 0;
+            }
+            init.agent = agent;
+        }
+
         const forwardResponse = await nodeFetch(req.url, init)
             .catch(e => {
                 console.log(e);
